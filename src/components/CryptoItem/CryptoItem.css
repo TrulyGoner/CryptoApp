@@ -1,0 +1,67 @@
+.crypto-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #1e1e2f;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+.crypto-item.trend-up {
+  box-shadow: inset 3px 0 0 #22c55e;
+}
+.crypto-item.trend-down {
+  box-shadow: inset 3px 0 0 #ef4444;
+}
+.crypto-item.trend-same {
+  box-shadow: inset 3px 0 0 #6b7280;
+}
+
+.crypto-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.crypto-symbol {
+  font-weight: 700;
+  font-size: 1.1rem;
+  width: 140px;
+  flex-shrink: 0;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.crypto-price {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 1rem;
+  width: 140px;
+  flex-shrink: 0;
+  text-align: right;
+  color: #cbd5e1;
+}
+
+.crypto-arrow {
+  font-size: 1.2rem;
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.arrow.up {
+  color: #22c55e;
+}
+.arrow.down {
+  color: #ef4444;
+}
+.arrow.same {
+  color: #6b7280;
+}
+
+.crypto-actions {
+  display: flex;
+  gap: 8px;
+}
