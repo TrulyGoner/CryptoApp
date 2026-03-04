@@ -79,7 +79,6 @@ export function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
 
   const validSuggestions = suggestions.filter((_coin, i) => {
     const query = priceQueries[i];
-    // Hide only if fetch completed and returned null (coin not found)
     if (query && !query.isLoading && query.data === null) return false;
     return true;
   });

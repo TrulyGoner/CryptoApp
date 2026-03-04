@@ -1,11 +1,13 @@
+import { memo } from "react";
 import type { CryptoData } from "@/entities/crypto";
-import { useHistory24h } from "@/shared/hooks";
 import { Button, Spinner, Sparkline } from "@/shared/ui";
 import "./CryptoItem.css";
 
 interface CryptoItemProps {
   coin: CryptoData;
   index: number;
+  history: number[];
+  change24h: number | null;
   onDelete: (symbol: string) => void;
   onUpdate: (symbol: string) => void;
 }
@@ -17,22 +19,16 @@ function getTrend(coin: CryptoData): "up" | "down" | "same" | "unknown" {
   return "same";
 }
 
-function getChange24h(history: number[]): { pct: number; direction: "up" | "down" | "same" } | null {
-  if (history.length < 2) return null;
-  const first = history[0];
-  const last = history[history.length - 1];
-  if (first === 0) return null;
-  const pct = ((last - first) / first) * 100;
-  return {
-    pct,
-    direction: pct > 0 ? "up" : pct < 0 ? "down" : "same",
-  };
+function changeDirection(pct: number | null): "up" | "down" | "same" {
+  if (pct === null) return "same";
+  if (pct > 0) return "up";
+  if (pct < 0) return "down";
+  return "same";
 }
 
-export function CryptoItem({ coin, index, onDelete, onUpdate }: CryptoItemProps) {
+export const CryptoItem = memo(function CryptoItem({ coin, index, history, change24h, onDelete, onUpdate }: CryptoItemProps) {
   const trend = getTrend(coin);
-  const { data: history = [] } = useHistory24h(coin.symbol);
-  const change = getChange24h(history);
+  const dir = changeDirection(change24h);
 
   return (
     <tr className={`crypto-row trend-${trend}`}>
@@ -55,10 +51,10 @@ export function CryptoItem({ coin, index, onDelete, onUpdate }: CryptoItemProps)
         )}
       </td>
       <td className="cell-change">
-        {change ? (
-          <span className={`change-pct ${change.direction}`}>
-            {change.pct > 0 ? "+" : ""}
-            {change.pct.toFixed(2)}%
+        {change24h !== null ? (
+          <span className={`change-pct ${dir}`}>
+            {change24h > 0 ? "+" : ""}
+            {change24h.toFixed(2)}%
           </span>
         ) : (
           <span className="change-pct same">—</span>
@@ -81,4 +77,4 @@ export function CryptoItem({ coin, index, onDelete, onUpdate }: CryptoItemProps)
       </td>
     </tr>
   );
-}
+});

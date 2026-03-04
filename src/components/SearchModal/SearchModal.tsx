@@ -68,9 +68,18 @@ export function SearchModal({ open, onClose, onSelect, searching }: SearchModalP
                 <div
                   key={coin.symbol}
                   className="top-item"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     onSelect(coin.symbol);
                     onClose();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelect(coin.symbol);
+                      onClose();
+                    }
                   }}
                 >
                   <span className="top-rank">#{i + 1}</span>

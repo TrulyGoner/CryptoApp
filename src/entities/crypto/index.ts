@@ -1,1 +1,1 @@
-export { type CryptoData, makeCoin } from "./model/types";
+export { type CryptoData } from "./model/types";

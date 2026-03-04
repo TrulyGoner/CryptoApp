@@ -61,8 +61,6 @@
   color: var(--text);
 }
 
-/* ---------- Top 3 ---------- */
-
 .top-section {
   margin-bottom: 20px;
 }
@@ -135,7 +133,6 @@
   padding: 16px 0;
 }
 
-/* ---------- Divider ---------- */
 
 .modal-divider {
   border: none;
@@ -143,7 +140,6 @@
   margin-bottom: 18px;
 }
 
-/* ---------- Search area inside modal ---------- */
 
 .modal-search-area {
   position: relative;

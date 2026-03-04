@@ -63,6 +63,21 @@
   border-bottom: 1px solid #2a2a3d;
 }
 
+.coin-table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.coin-table thead th.sortable:hover {
+  color: var(--text);
+}
+
+.coin-table thead th.sortable.active {
+  color: var(--accent);
+}
+
 .coin-table thead th:nth-child(3),
 .coin-table thead th:nth-child(4) {
   text-align: right;
