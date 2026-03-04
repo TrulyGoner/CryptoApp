@@ -1,0 +1,43 @@
+.btn {
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn:hover {
+  opacity: 0.85;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- variants ---------- */
+
+.btn--primary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn--danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn--info {
+  background: #0ea5e9;
+  color: #fff;
+}
+
+.btn--accent {
+  background: var(--accent);
+  color: #fff;
+}
