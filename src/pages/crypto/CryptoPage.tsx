@@ -1,19 +1,15 @@
 import { useReducer, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchCryptoPrice } from "@/shared/api";
-import { useCryptoPrices, useHistories24h, useSortWorker } from "@/shared/hooks";
+import { useSortWorker, useCryptoPrices, useHistories24h } from "@/shared/hooks";
 import { loadCoins, saveCoins } from "@/shared/lib";
-import { Button, Input } from "@/shared/ui";
-import type { CryptoData } from "@/entities/crypto";
+import { Button, Input, SkeletonRow } from "@/shared/ui";
 import { CryptoItem, SearchModal } from "@/components";
 import type { SortableItem } from "@/shared/workers/sort.worker";
 import "./CryptoPage.css";
 
-type PriceEntry = { prev: number | null; current: number | null };
-
 interface State {
   symbols: string[];
-  priceHistory: Record<string, PriceEntry>;
   searchError: string | null;
   searching: boolean;
   modalOpen: boolean;
@@ -25,17 +21,12 @@ type Action =
   | { type: "SET_SEARCH_ERROR"; error: string | null }
   | { type: "SET_SEARCHING"; value: boolean }
   | { type: "ADD_SYMBOL"; symbol: string }
-  | { type: "REMOVE_SYMBOL"; symbol: string }
-  | { type: "UPDATE_PRICES"; entries: { symbol: string; price: number }[] };
+  | { type: "REMOVE_SYMBOL"; symbol: string };
 
 function initState(): State {
   const saved = loadCoins();
   const symbols = saved.length > 0 ? saved.map((c) => c.symbol) : ["DOGE"];
-  const priceHistory: Record<string, PriceEntry> = {};
-  saved.forEach((c) => {
-    priceHistory[c.symbol] = { prev: c.prevPrice, current: c.price };
-  });
-  return { symbols, priceHistory, searchError: null, searching: false, modalOpen: false };
+  return { symbols, searchError: null, searching: false, modalOpen: false };
 }
 
 function reducer(state: State, action: Action): State {
@@ -54,21 +45,6 @@ function reducer(state: State, action: Action): State {
         : { ...state, symbols: [...state.symbols, action.symbol] };
     case "REMOVE_SYMBOL":
       return { ...state, symbols: state.symbols.filter((s) => s !== action.symbol) };
-    case "UPDATE_PRICES": {
-      let changed = false;
-      const next = { ...state.priceHistory };
-      for (const { symbol, price } of action.entries) {
-        const entry = next[symbol];
-        if (!entry) {
-          next[symbol] = { prev: price, current: price };
-          changed = true;
-        } else if (entry.current !== price) {
-          next[symbol] = { prev: entry.current, current: price };
-          changed = true;
-        }
-      }
-      return changed ? { ...state, priceHistory: next } : state;
-    }
     default:
       return state;
   }
@@ -77,92 +53,57 @@ function reducer(state: State, action: Action): State {
 export function CryptoPage() {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(reducer, undefined, initState);
-  const { symbols, priceHistory, searchError, searching, modalOpen } = state;
+  const { symbols, searchError, searching, modalOpen } = state;
 
   const priceQueries = useCryptoPrices(symbols);
-
-  useEffect(() => {
-    const entries: { symbol: string; price: number }[] = [];
-    symbols.forEach((sym, i) => {
-      const p = priceQueries[i]?.data ?? null;
-      if (p !== null) entries.push({ symbol: sym, price: p });
-    });
-    if (entries.length > 0) dispatch({ type: "UPDATE_PRICES", entries });
-  }, [priceQueries, symbols]);
-
-  const coins: CryptoData[] = useMemo(
-    () =>
-      symbols.map((symbol, i) => {
-        const query = priceQueries[i];
-        const history = priceHistory[symbol];
-        return {
-          symbol,
-          price: query.data ?? null,
-          prevPrice: history?.prev ?? null,
-          loading: query.isLoading || query.isFetching,
-        };
-      }),
-    [symbols, priceQueries, priceHistory],
-  );
-
   const historyQueries = useHistories24h(symbols);
 
-  const historyMap = useMemo(() => {
-    const map: Record<string, number[]> = {};
-    symbols.forEach((sym, i) => {
-      map[sym] = historyQueries[i]?.data ?? [];
-    });
-    return map;
-  }, [historyQueries, symbols]);
-
-  const change24hMap = useMemo(() => {
-    const map: Record<string, number | null> = {};
-    symbols.forEach((sym) => {
-      const h = historyMap[sym];
-      if (!h || h.length < 2 || h[0] === 0) {
-        map[sym] = null;
-      } else {
-        map[sym] = ((h[h.length - 1] - h[0]) / h[0]) * 100;
-      }
-    });
-    return map;
-  }, [historyMap, symbols]);
-
-  const sortableItems: SortableItem[] = useMemo(
-    () =>
-      coins.map((c) => ({
-        symbol: c.symbol,
-        price: c.price,
-        change24h: change24hMap[c.symbol] ?? null,
-      })),
-    [coins, change24hMap],
+  const priceValuesKey = useMemo(
+    () => priceQueries.map((q) => q.data ?? null).join(","),
+    [priceQueries],
   );
+
+  const historyDataKey = useMemo(
+    () =>
+      historyQueries
+        .map((q) => {
+          const d = q.data;
+          if (!d || d.length === 0) return "";
+          return `${d[0]}:${d[d.length - 1]}`;
+        })
+        .join("|"),
+    [historyQueries],
+  );
+
+  const sortableItems: SortableItem[] = useMemo(() => {
+    return symbols.map((sym, i) => {
+      const price = priceQueries[i]?.data ?? null;
+      const h = historyQueries[i]?.data;
+      let change24h: number | null = null;
+      if (h && h.length >= 2 && h[0] !== 0) {
+        change24h = ((h[h.length - 1] - h[0]) / h[0]) * 100;
+      }
+      return { symbol: sym, price, change24h };
+    });
+  }, [symbols, priceValuesKey, historyDataKey]);
+
+  const isInitialLoading = priceQueries.every((q) => q.isLoading);
 
   const { sortedSymbols, sortField, sortDir, toggleSort } = useSortWorker(sortableItems);
 
-  const displayCoins = useMemo(() => {
-    if (sortedSymbols.length === 0) return coins.filter((c) => c.loading || c.price !== null);
+  const displaySymbols = useMemo(() => {
+    if (sortedSymbols.length === 0) return symbols;
     const order = new Map(sortedSymbols.map((s, i) => [s, i]));
-    return [...coins]
-      .filter((c) => c.loading || c.price !== null)
-      .sort((a, b) => (order.get(a.symbol) ?? 0) - (order.get(b.symbol) ?? 0));
-  }, [coins, sortedSymbols]);
+    return [...symbols].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0));
+  }, [symbols, sortedSymbols]);
 
   useEffect(() => {
-    const data = symbols.map((sym) => ({
-      symbol: sym,
-      price: priceHistory[sym]?.current ?? null,
-      prevPrice: priceHistory[sym]?.prev ?? null,
-    }));
+    const data = symbols.map((sym) => {
+      const cached = queryClient.getQueryData<number | null>(["cryptoPrice", sym]);
+      return { symbol: sym, price: cached ?? null, prevPrice: null };
+    });
     saveCoins(data);
-  }, [symbols, priceHistory]);
-
-  const updateCoin = useCallback(
-    (symbol: string) => {
-      queryClient.invalidateQueries({ queryKey: ["cryptoPrice", symbol] });
-    },
-    [queryClient],
-  );
+  }, [symbols, queryClient]);
 
   const updateAll = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["cryptoPrice"] });
@@ -196,6 +137,14 @@ export function CryptoPage() {
     dispatch({ type: "REMOVE_SYMBOL", symbol });
   }, []);
 
+  const openModal = useCallback(() => {
+    dispatch({ type: "OPEN_MODAL" });
+  }, []);
+
+  const closeModal = useCallback(() => {
+    dispatch({ type: "CLOSE_MODAL" });
+  }, []);
+
   const handleSortKeyDown = useCallback(
     (field: "price" | "change24h") => (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -206,6 +155,9 @@ export function CryptoPage() {
     [toggleSort],
   );
 
+  const toggleSortPrice = useCallback(() => toggleSort("price"), [toggleSort]);
+  const toggleSortChange = useCallback(() => toggleSort("change24h"), [toggleSort]);
+
   return (
     <>
       <div className="controls">
@@ -213,11 +165,11 @@ export function CryptoPage() {
           className="search-trigger"
           role="button"
           tabIndex={0}
-          onClick={() => dispatch({ type: "OPEN_MODAL" })}
+          onClick={openModal}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              dispatch({ type: "OPEN_MODAL" });
+              openModal();
             }
           }}
         >
@@ -237,7 +189,7 @@ export function CryptoPage() {
 
       <SearchModal
         open={modalOpen}
-        onClose={() => dispatch({ type: "CLOSE_MODAL" })}
+        onClose={closeModal}
         onSelect={handleSearch}
         searching={searching}
       />
@@ -253,7 +205,7 @@ export function CryptoPage() {
               className={`sortable ${sortField === "price" ? "active" : ""}`}
               tabIndex={0}
               aria-sort={sortField === "price" ? (sortDir === "desc" ? "descending" : "ascending") : "none"}
-              onClick={() => toggleSort("price")}
+              onClick={toggleSortPrice}
               onKeyDown={handleSortKeyDown("price")}
             >
               Price {sortField === "price" && (sortDir === "desc" ? "▼" : "▲")}
@@ -262,7 +214,7 @@ export function CryptoPage() {
               className={`sortable ${sortField === "change24h" ? "active" : ""}`}
               tabIndex={0}
               aria-sort={sortField === "change24h" ? (sortDir === "desc" ? "descending" : "ascending") : "none"}
-              onClick={() => toggleSort("change24h")}
+              onClick={toggleSortChange}
               onKeyDown={handleSortKeyDown("change24h")}
             >
               24h % {sortField === "change24h" && (sortDir === "desc" ? "▼" : "▲")}
@@ -272,20 +224,21 @@ export function CryptoPage() {
           </tr>
         </thead>
         <tbody>
-          {displayCoins.map((coin, i) => (
+          {isInitialLoading ? (
+            <SkeletonRow count={symbols.length || 5} />
+          ) : (
+            displaySymbols.map((sym, i) => (
               <CryptoItem
-                key={coin.symbol}
-                coin={coin}
+                key={sym}
+                symbol={sym}
                 index={i + 1}
-                history={historyMap[coin.symbol] ?? []}
-                change24h={change24hMap[coin.symbol] ?? null}
                 onDelete={handleDelete}
-                onUpdate={updateCoin}
               />
-            ))}
+            ))
+          )}
         </tbody>
       </table>
-      {coins.length === 0 && (
+      {symbols.length === 0 && (
         <p className="empty">
           No cryptocurrencies tracked. Search to add one!
         </p>

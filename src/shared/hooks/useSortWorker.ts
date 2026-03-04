@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type {
   SortableItem,
   SortField,
@@ -15,6 +15,11 @@ export function useSortWorker(items: SortableItem[]) {
   const [sortedSymbols, setSortedSymbols] = useState<string[]>([]);
   const workerRef = useRef<Worker | null>(null);
 
+  const itemsKey = useMemo(
+    () => items.map((i) => `${i.symbol}:${i.price}:${i.change24h}`).join("|"),
+    [items],
+  );
+
   useEffect(() => {
     workerRef.current = new SortWorker();
     workerRef.current.onmessage = (e: MessageEvent<SortResponse>) => {
@@ -27,13 +32,17 @@ export function useSortWorker(items: SortableItem[]) {
 
   useEffect(() => {
     if (!workerRef.current) return;
+    if (!sortField) {
+      setSortedSymbols(items.map((i) => i.symbol));
+      return;
+    }
     const msg: SortRequest = {
       items,
       field: sortField,
       direction: sortDir,
     };
     workerRef.current.postMessage(msg);
-  }, [items, sortField, sortDir]);
+  }, [itemsKey, sortField, sortDir]);
 
   const toggleSort = useCallback(
     (field: "price" | "change24h") => {

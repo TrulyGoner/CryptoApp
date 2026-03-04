@@ -1,21 +1,21 @@
-import { memo } from "react";
-import type { CryptoData } from "@/entities/crypto";
+import { memo, useMemo, useCallback } from "react";
+import { useCryptoPrice, useHistory24h } from "@/shared/hooks";
 import { Button, Spinner, Sparkline } from "@/shared/ui";
 import "./CryptoItem.css";
 
 interface CryptoItemProps {
-  coin: CryptoData;
+  symbol: string;
   index: number;
-  history: number[];
-  change24h: number | null;
   onDelete: (symbol: string) => void;
-  onUpdate: (symbol: string) => void;
 }
 
-function getTrend(coin: CryptoData): "up" | "down" | "same" | "unknown" {
-  if (coin.price === null || coin.prevPrice === null) return "unknown";
-  if (coin.price > coin.prevPrice) return "up";
-  if (coin.price < coin.prevPrice) return "down";
+function getTrend(
+  price: number | null,
+  prevPrice: number | null,
+): "up" | "down" | "same" | "unknown" {
+  if (price === null || prevPrice === null) return "unknown";
+  if (price > prevPrice) return "up";
+  if (price < prevPrice) return "down";
   return "same";
 }
 
@@ -26,15 +26,33 @@ function changeDirection(pct: number | null): "up" | "down" | "same" {
   return "same";
 }
 
-export const CryptoItem = memo(function CryptoItem({ coin, index, history, change24h, onDelete, onUpdate }: CryptoItemProps) {
-  const trend = getTrend(coin);
+function calcChange(history: number[] | undefined): number | null {
+  if (!history || history.length < 2 || history[0] === 0) return null;
+  return ((history[history.length - 1] - history[0]) / history[0]) * 100;
+}
+
+export const CryptoItem = memo(function CryptoItem({
+  symbol,
+  index,
+  onDelete,
+}: CryptoItemProps) {
+  const { price, prevPrice, isLoading, isFetching, invalidate } =
+    useCryptoPrice(symbol);
+  const { data: history } = useHistory24h(symbol);
+
+  const change24h = useMemo(() => calcChange(history), [history]);
+  const trend = getTrend(price, prevPrice);
   const dir = changeDirection(change24h);
+  const loading = isLoading || isFetching;
+
+  const handleUpdate = useCallback(() => invalidate(), [invalidate]);
+  const handleDelete = useCallback(() => onDelete(symbol), [onDelete, symbol]);
 
   return (
     <tr className={`crypto-row trend-${trend}`}>
       <td className="cell-index">{index}</td>
       <td className="cell-symbol">
-        <span className="crypto-symbol">{coin.symbol}</span>
+        <span className="crypto-symbol">{symbol}</span>
         <span className="crypto-arrow">
           {trend === "up" && <span className="arrow up">▲</span>}
           {trend === "down" && <span className="arrow down">▼</span>}
@@ -42,10 +60,10 @@ export const CryptoItem = memo(function CryptoItem({ coin, index, history, chang
         </span>
       </td>
       <td className="cell-price">
-        {coin.loading ? (
+        {loading ? (
           <Spinner />
-        ) : coin.price !== null ? (
-          `$${coin.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+        ) : price !== null ? (
+          `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
         ) : (
           "N/A"
         )}
@@ -61,17 +79,13 @@ export const CryptoItem = memo(function CryptoItem({ coin, index, history, chang
         )}
       </td>
       <td className="cell-chart">
-        <Sparkline data={history} width={100} height={32} />
+        <Sparkline data={history ?? []} width={100} height={32} />
       </td>
       <td className="cell-actions">
-        <Button
-          variant="primary"
-          onClick={() => onUpdate(coin.symbol)}
-          disabled={coin.loading}
-        >
+        <Button variant="primary" onClick={handleUpdate} disabled={loading}>
           Update
         </Button>
-        <Button variant="danger" onClick={() => onDelete(coin.symbol)}>
+        <Button variant="danger" onClick={handleDelete}>
           Delete
         </Button>
       </td>

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { Input } from "@/shared/ui";
-import { useCoinList, useCryptoPrices } from "@/shared/hooks";
+import { useCoinList, useLazyCryptoPrices } from "@/shared/hooks";
 import type { CoinInfo } from "@/shared/api";
 import "./SearchBar.css";
 
@@ -11,23 +11,58 @@ interface SearchBarProps {
 }
 
 const MAX_SUGGESTIONS = 8;
+const PRICE_DEBOUNCE_MS = 300;
 
-export function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
+export const SearchBar = memo(function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
   const [value, setValue] = useState("");
   const [suggestions, setSuggestions] = useState<CoinInfo[]>([]);
+  const [debouncedSymbols, setDebouncedSymbols] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: coins = [] } = useCoinList();
 
-  const suggestionSymbols = suggestions.map((c) => c.Symbol);
-  const priceQueries = useCryptoPrices(suggestionSymbols);
+  const suggestionSymbols = useMemo(() => suggestions.map((c) => c.Symbol), [suggestions]);
 
-  const prices: Record<string, number | null> = {};
-  suggestions.forEach((coin, i) => {
-    prices[coin.Symbol] = priceQueries[i]?.data ?? null;
-  });
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (suggestionSymbols.length === 0) {
+      setDebouncedSymbols([]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSymbols(suggestionSymbols);
+    }, PRICE_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [suggestionSymbols.join(",")]);
+
+  const priceQueries = useLazyCryptoPrices(debouncedSymbols);
+
+  const priceDataKey = useMemo(
+    () => priceQueries.map((q) => q.data ?? null).join(","),
+    [priceQueries],
+  );
+
+  const prices: Record<string, number | null> = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    debouncedSymbols.forEach((sym, i) => {
+      map[sym] = priceQueries[i]?.data ?? null;
+    });
+    return map;
+
+  }, [priceDataKey, debouncedSymbols.join(",")]);
+
+  const priceLoadingSet = useMemo(() => {
+    const set = new Set<string>();
+    debouncedSymbols.forEach((sym, i) => {
+      if (priceQueries[i]?.isLoading) set.add(sym);
+    });
+    return set;
+  }, [priceDataKey, debouncedSymbols.join(",")]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -71,17 +106,23 @@ export function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
       setValue("");
       setShowDropdown(false);
       setSuggestions([]);
+      setDebouncedSymbols([]);
       setActiveIdx(-1);
       onSearch(symbol);
     },
     [onSearch],
   );
 
-  const validSuggestions = suggestions.filter((_coin, i) => {
-    const query = priceQueries[i];
-    if (query && !query.isLoading && query.data === null) return false;
-    return true;
-  });
+  const validSuggestions = useMemo(
+    () =>
+      suggestions.filter((coin) => {
+        const price = prices[coin.Symbol];
+        const loading = priceLoadingSet.has(coin.Symbol);
+        if (!loading && price === null && debouncedSymbols.includes(coin.Symbol)) return false;
+        return true;
+      }),
+    [suggestions, prices, priceLoadingSet, debouncedSymbols],
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showDropdown || validSuggestions.length === 0) return;
@@ -151,4 +192,4 @@ export function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
       )}
     </div>
   );
-}
+});
