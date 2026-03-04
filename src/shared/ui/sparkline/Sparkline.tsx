@@ -8,7 +8,25 @@ interface SparklineProps {
 
 export function Sparkline({ data, width = 120, height = 36 }: SparklineProps) {
   if (data.length < 2) {
-    return <div className="sparkline-empty" style={{ width, height }} />;
+    const y = height / 2;
+    return (
+      <svg
+        className="sparkline"
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+      >
+        <line
+          x1={2}
+          y1={y}
+          x2={width - 2}
+          y2={y}
+          stroke="#6b7280"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
   }
 
   const min = Math.min(...data);
