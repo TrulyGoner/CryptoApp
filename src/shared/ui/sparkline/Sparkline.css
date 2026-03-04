@@ -1,0 +1,9 @@
+.sparkline {
+  display: block;
+  flex-shrink: 0;
+}
+
+.sparkline-empty {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
