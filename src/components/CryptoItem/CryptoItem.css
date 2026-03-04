@@ -1,54 +1,49 @@
-.crypto-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: 10px;
-  background: #1e1e2f;
-  transition: background 0.3s, box-shadow 0.3s;
+.crypto-row {
+  transition: background 0.2s;
 }
 
-.crypto-item.trend-up {
+.crypto-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.crypto-row.trend-up {
   box-shadow: inset 3px 0 0 #22c55e;
 }
-.crypto-item.trend-down {
+.crypto-row.trend-down {
   box-shadow: inset 3px 0 0 #ef4444;
 }
-.crypto-item.trend-same {
+.crypto-row.trend-same {
   box-shadow: inset 3px 0 0 #6b7280;
 }
 
-.crypto-info {
+.crypto-row td {
+  padding: 10px 12px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.cell-index {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: 36px;
+  text-align: center;
+}
+
+.cell-symbol {
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex: 1;
-  min-width: 0;
+  gap: 6px;
 }
 
 .crypto-symbol {
   font-weight: 700;
-  font-size: 1.1rem;
-  width: 140px;
-  flex-shrink: 0;
-  color: #e2e8f0;
-  white-space: nowrap;
-}
-
-.crypto-price {
-  font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 1rem;
-  width: 140px;
-  flex-shrink: 0;
-  text-align: right;
-  color: #cbd5e1;
+  color: var(--text);
 }
 
 .crypto-arrow {
-  font-size: 1.2rem;
-  width: 24px;
-  flex-shrink: 0;
-  text-align: center;
+  font-size: 0.9rem;
 }
 
 .arrow.up {
@@ -61,7 +56,37 @@
   color: #6b7280;
 }
 
-.crypto-actions {
-  display: flex;
-  gap: 8px;
+.cell-price {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  text-align: right;
+}
+
+.cell-change {
+  text-align: right;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.85rem;
+}
+
+.change-pct.up {
+  color: #22c55e;
+}
+.change-pct.down {
+  color: #ef4444;
+}
+.change-pct.same {
+  color: #6b7280;
+}
+
+.cell-chart {
+  text-align: center;
+}
+
+.cell-actions {
+  text-align: right;
+}
+
+.cell-actions .btn {
+  margin-left: 6px;
 }

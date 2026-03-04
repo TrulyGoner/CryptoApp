@@ -1,2 +1,2 @@
-export { fetchCryptoPrice, fetchCoinList } from "./cryptoCompare";
+export { fetchCryptoPrice, fetchCoinList, fetchHistory24h } from "./cryptoCompare";
 export type { PriceResponse, CoinInfo } from "./cryptoCompare";

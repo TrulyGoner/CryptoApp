@@ -1,43 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Button, Input } from "@/shared/ui";
-import { fetchCoinList, fetchCryptoPrice } from "@/shared/api";
+import { Input } from "@/shared/ui";
+import { useCoinList, useCryptoPrices } from "@/shared/hooks";
 import type { CoinInfo } from "@/shared/api";
 import "./SearchBar.css";
 
 interface SearchBarProps {
   onSearch: (symbol: string) => void;
-  searching: boolean;
+  searching?: boolean;
+  autoFocus?: boolean;
 }
 
 const MAX_SUGGESTIONS = 8;
 
-export function SearchBar({ onSearch, searching }: SearchBarProps) {
+export function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
   const [value, setValue] = useState("");
-  const [coins, setCoins] = useState<CoinInfo[]>([]);
   const [suggestions, setSuggestions] = useState<CoinInfo[]>([]);
-  const [prices, setPrices] = useState<Record<string, number | null>>({});
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const fetchIdRef = useRef(0);
 
-  useEffect(() => {
-    fetchCoinList().then(setCoins);
-  }, []);
+  const { data: coins = [] } = useCoinList();
 
-  useEffect(() => {
-    if (suggestions.length === 0) return;
+  const suggestionSymbols = suggestions.map((c) => c.Symbol);
+  const priceQueries = useCryptoPrices(suggestionSymbols);
 
-    const id = ++fetchIdRef.current;
-
-    suggestions.forEach((coin) => {
-      if (prices[coin.Symbol] !== undefined) return; 
-      fetchCryptoPrice(coin.Symbol).then((price) => {
-        if (fetchIdRef.current !== id) return; // stale
-        setPrices((prev) => ({ ...prev, [coin.Symbol]: price }));
-      });
-    });
-  }, [suggestions]); 
+  const prices: Record<string, number | null> = {};
+  suggestions.forEach((coin, i) => {
+    prices[coin.Symbol] = priceQueries[i]?.data ?? null;
+  });
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -87,9 +77,11 @@ export function SearchBar({ onSearch, searching }: SearchBarProps) {
     [onSearch],
   );
 
-  const validSuggestions = suggestions.filter(
-    (coin) => prices[coin.Symbol] !== null,
-  );
+  const validSuggestions = suggestions.filter((_coin, i) => {
+    const query = priceQueries[i];
+    if (query && !query.isLoading && query.data === null) return false;
+    return true;
+  });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showDropdown || validSuggestions.length === 0) return;
@@ -131,15 +123,9 @@ export function SearchBar({ onSearch, searching }: SearchBarProps) {
               if (suggestions.length > 0) setShowDropdown(true);
             }}
             autoComplete="off"
+            autoFocus={autoFocus}
           />
         </div>
-        <Button
-          type="submit"
-          variant="accent"
-          disabled={searching || !value.trim()}
-        >
-          {searching ? "Searching…" : "Search"}
-        </Button>
       </form>
 
       {showDropdown && validSuggestions.length > 0 && (
@@ -155,7 +141,7 @@ export function SearchBar({ onSearch, searching }: SearchBarProps) {
               <span className="suggestion-symbol">{coin.Symbol}</span>
               <span className="suggestion-name">{coin.FullName}</span>
               <span className="suggestion-price">
-                {prices[coin.Symbol] !== undefined
+                {prices[coin.Symbol] != null
                   ? `$${prices[coin.Symbol]!.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
                   : "…"}
               </span>
