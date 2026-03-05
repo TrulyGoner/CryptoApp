@@ -36,7 +36,7 @@ export function SkeletonRow({ count = 5 }: SkeletonRowProps) {
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <SingleRow key={i} />
+        <SingleRow key={`skeleton-${i}`} />
       ))}
     </>
   );

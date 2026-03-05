@@ -1,7 +1,7 @@
 import { useReducer, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchCryptoPrice } from "@/shared/api";
-import { useSortWorker, useCryptoPrices, useHistories24h } from "@/shared/hooks";
+import { useSortWorker, useCryptoPrices, useHistories24h, useDebouncedValue } from "@/shared/hooks";
 import { loadCoins, saveCoins } from "@/shared/lib";
 import { Button, Input, SkeletonRow } from "@/shared/ui";
 import { CryptoItem, SearchModal } from "@/components";
@@ -89,7 +89,8 @@ export function CryptoPage() {
 
   const isInitialLoading = priceQueries.every((q) => q.isLoading);
 
-  const { sortedSymbols, sortField, sortDir, toggleSort } = useSortWorker(sortableItems);
+  const debouncedSortableItems = useDebouncedValue(sortableItems, 150);
+  const { sortedSymbols, sortField, sortDir, toggleSort } = useSortWorker(debouncedSortableItems);
 
   const displaySymbols = useMemo(() => {
     if (sortedSymbols.length === 0) return symbols;
