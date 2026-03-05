@@ -47,7 +47,7 @@
 
 .coin-grid {
   display: grid;
-  grid-template-columns: 40px 1fr 130px 80px 124px min-content;
+  grid-template-columns: 40px 0.95fr 130px 80px 124px 156px;
   align-items: center;
 }
 
