@@ -20,9 +20,16 @@
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-.skeleton-row td {
-  padding: 10px 12px;
-  vertical-align: middle;
+.skeleton-row {
+  background: var(--surface);
+  border-radius: 10px;
+  height: 52px;
+  margin-bottom: 6px;
+}
+
+.skeleton-row > div {
+  display: flex;
+  align-items: center;
 }
 
 .skeleton-index {

@@ -7,6 +7,7 @@ interface CryptoItemProps {
   symbol: string;
   index: number;
   onDelete: (symbol: string) => void;
+  style?: React.CSSProperties;
 }
 
 function getTrend(
@@ -35,6 +36,7 @@ export const CryptoItem = memo(function CryptoItem({
   symbol,
   index,
   onDelete,
+  style,
 }: CryptoItemProps) {
   const { price, prevPrice, isLoading, isFetching, invalidate } =
     useCryptoPrice(symbol);
@@ -49,46 +51,48 @@ export const CryptoItem = memo(function CryptoItem({
   const handleDelete = useCallback(() => onDelete(symbol), [onDelete, symbol]);
 
   return (
-    <tr className={`crypto-row trend-${trend}`}>
-      <td className="cell-index">{index}</td>
-      <td className="cell-symbol">
-        <span className="crypto-symbol">{symbol}</span>
-        <span className="crypto-arrow">
-          {trend === "up" && <span className="arrow up">▲</span>}
-          {trend === "down" && <span className="arrow down">▼</span>}
-          {trend === "same" && <span className="arrow same">—</span>}
-        </span>
-      </td>
-      <td className="cell-price">
-        {loading ? (
-          <Spinner />
-        ) : price !== null ? (
-          `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
-        ) : (
-          "N/A"
-        )}
-      </td>
-      <td className="cell-change">
-        {change24h !== null ? (
-          <span className={`change-pct ${dir}`}>
-            {change24h > 0 ? "+" : ""}
-            {change24h.toFixed(2)}%
+    <div style={style}>
+      <div className={`crypto-row coin-grid trend-${trend}`}>
+        <div className="cell-index">{index}</div>
+        <div className="cell-symbol">
+          <span className="crypto-symbol">{symbol}</span>
+          <span className="crypto-arrow">
+            {trend === "up" && <span className="arrow up">▲</span>}
+            {trend === "down" && <span className="arrow down">▼</span>}
+            {trend === "same" && <span className="arrow same">—</span>}
           </span>
-        ) : (
-          <span className="change-pct same">—</span>
-        )}
-      </td>
-      <td className="cell-chart">
-        <Sparkline data={history ?? []} width={100} height={32} />
-      </td>
-      <td className="cell-actions">
-        <Button variant="primary" onClick={handleUpdate} disabled={loading}>
-          Update
-        </Button>
-        <Button variant="danger" onClick={handleDelete}>
-          Delete
-        </Button>
-      </td>
-    </tr>
+        </div>
+        <div className="cell-price">
+          {loading ? (
+            <Spinner />
+          ) : price !== null ? (
+            `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+          ) : (
+            "N/A"
+          )}
+        </div>
+        <div className="cell-change">
+          {change24h !== null ? (
+            <span className={`change-pct ${dir}`}>
+              {change24h > 0 ? "+" : ""}
+              {change24h.toFixed(2)}%
+            </span>
+          ) : (
+            <span className="change-pct same">—</span>
+          )}
+        </div>
+        <div className="cell-chart">
+          <Sparkline data={history ?? []} width={100} height={32} />
+        </div>
+        <div className="cell-actions">
+          <Button variant="primary" onClick={handleUpdate} disabled={loading}>
+            Update
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Delete
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 });

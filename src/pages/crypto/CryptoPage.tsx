@@ -1,5 +1,6 @@
 import { useReducer, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { List, type RowComponentProps } from "react-window";
 import { fetchCryptoPrice } from "@/shared/api";
 import { useSortWorker, useCryptoPrices, useHistories24h, useDebouncedValue } from "@/shared/hooks";
 import { loadCoins, saveCoins } from "@/shared/lib";
@@ -27,6 +28,25 @@ function initState(): State {
   const saved = loadCoins();
   const symbols = saved.length > 0 ? saved.map((c) => c.symbol) : ["DOGE"];
   return { symbols, searchError: null, searching: false, modalOpen: false };
+}
+
+const ROW_HEIGHT = 58;
+const MAX_LIST_HEIGHT = 600;
+
+interface RowData {
+  symbols: string[];
+  onDelete: (symbol: string) => void;
+}
+
+function VirtualRow({ index, style, symbols, onDelete }: RowComponentProps<RowData>) {
+  return (
+    <CryptoItem
+      symbol={symbols[index]}
+      index={index + 1}
+      onDelete={onDelete}
+      style={style}
+    />
+  );
 }
 
 function reducer(state: State, action: Action): State {
@@ -159,6 +179,13 @@ export function CryptoPage() {
   const toggleSortPrice = useCallback(() => toggleSort("price"), [toggleSort]);
   const toggleSortChange = useCallback(() => toggleSort("change24h"), [toggleSort]);
 
+  const itemData: RowData = useMemo(() => ({
+    symbols: displaySymbols,
+    onDelete: handleDelete,
+  }), [displaySymbols, handleDelete]);
+
+  const listHeight = Math.min(displaySymbols.length * ROW_HEIGHT, MAX_LIST_HEIGHT);
+
   return (
     <>
       <div className="controls">
@@ -197,48 +224,47 @@ export function CryptoPage() {
 
       {searchError && <p className="search-error">{searchError}</p>}
 
-      <table className="coin-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th
-              className={`sortable ${sortField === "price" ? "active" : ""}`}
-              tabIndex={0}
-              aria-sort={sortField === "price" ? (sortDir === "desc" ? "descending" : "ascending") : "none"}
-              onClick={toggleSortPrice}
-              onKeyDown={handleSortKeyDown("price")}
-            >
-              Price {sortField === "price" && (sortDir === "desc" ? "▼" : "▲")}
-            </th>
-            <th
-              className={`sortable ${sortField === "change24h" ? "active" : ""}`}
-              tabIndex={0}
-              aria-sort={sortField === "change24h" ? (sortDir === "desc" ? "descending" : "ascending") : "none"}
-              onClick={toggleSortChange}
-              onKeyDown={handleSortKeyDown("change24h")}
-            >
-              24h % {sortField === "change24h" && (sortDir === "desc" ? "▼" : "▲")}
-            </th>
-            <th>24h Chart</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="coin-table" role="table">
+        <div className="coin-header coin-grid" role="row">
+          <div role="columnheader">#</div>
+          <div role="columnheader">Name</div>
+          <div
+            role="columnheader"
+            className={`sortable ${sortField === "price" ? "active" : ""}`}
+            tabIndex={0}
+            aria-sort={sortField === "price" ? (sortDir === "desc" ? "descending" : "ascending") : "none"}
+            onClick={toggleSortPrice}
+            onKeyDown={handleSortKeyDown("price")}
+          >
+            Price {sortField === "price" && (sortDir === "desc" ? "▼" : "▲")}
+          </div>
+          <div
+            role="columnheader"
+            className={`sortable ${sortField === "change24h" ? "active" : ""}`}
+            tabIndex={0}
+            aria-sort={sortField === "change24h" ? (sortDir === "desc" ? "descending" : "ascending") : "none"}
+            onClick={toggleSortChange}
+            onKeyDown={handleSortKeyDown("change24h")}
+          >
+            24h % {sortField === "change24h" && (sortDir === "desc" ? "▼" : "▲")}
+          </div>
+          <div role="columnheader">24h Chart</div>
+          <div role="columnheader"></div>
+        </div>
+        <div className="coin-body">
           {isInitialLoading ? (
             <SkeletonRow count={symbols.length || 5} />
-          ) : (
-            displaySymbols.map((sym, i) => (
-              <CryptoItem
-                key={sym}
-                symbol={sym}
-                index={i + 1}
-                onDelete={handleDelete}
-              />
-            ))
-          )}
-        </tbody>
-      </table>
+          ) : displaySymbols.length > 0 ? (
+            <List<RowData>
+              rowComponent={VirtualRow}
+              rowCount={displaySymbols.length}
+              rowHeight={ROW_HEIGHT}
+              rowProps={itemData}
+              style={{ height: listHeight }}
+            />
+          ) : null}
+        </div>
+      </div>
       {symbols.length === 0 && (
         <p className="empty">
           No cryptocurrencies tracked. Search to add one!

@@ -6,29 +6,17 @@ interface SkeletonRowProps {
 
 function SingleRow() {
   return (
-    <tr className="skeleton-row">
-      <td>
-        <div className="skeleton skeleton-index" />
-      </td>
-      <td>
-        <div className="skeleton skeleton-symbol" />
-      </td>
-      <td>
-        <div className="skeleton skeleton-price" />
-      </td>
-      <td>
-        <div className="skeleton skeleton-change" />
-      </td>
-      <td>
-        <div className="skeleton skeleton-chart" />
-      </td>
-      <td>
-        <div className="skeleton-actions">
-          <div className="skeleton skeleton-btn" />
-          <div className="skeleton skeleton-btn" />
-        </div>
-      </td>
-    </tr>
+    <div className="skeleton-row coin-grid">
+      <div><div className="skeleton skeleton-index" /></div>
+      <div><div className="skeleton skeleton-symbol" /></div>
+      <div><div className="skeleton skeleton-price" /></div>
+      <div><div className="skeleton skeleton-change" /></div>
+      <div><div className="skeleton skeleton-chart" /></div>
+      <div className="skeleton-actions">
+        <div className="skeleton skeleton-btn" />
+        <div className="skeleton skeleton-btn" />
+      </div>
+    </div>
   );
 }
 
