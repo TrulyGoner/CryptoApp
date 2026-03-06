@@ -1,6 +1,7 @@
-import { useEffect, useRef, useCallback, useMemo, useReducer, memo } from "react";
+import { useEffect, useCallback, useMemo, useReducer, memo } from "react";
 import { Input } from "@/shared/ui";
-import { useCoinList, useCryptoPrices } from "@/shared/hooks";
+import { useCoinList, useCryptoPrices, useDebouncedValue } from "@/shared/hooks";
+import { formatPrice } from "@/shared/lib";
 import type { CoinInfo } from "@/shared/api";
 import "./SearchBar.css";
 
@@ -16,7 +17,6 @@ const PRICE_DEBOUNCE_MS = 300;
 interface SearchState {
   value: string;
   suggestions: CoinInfo[];
-  debouncedSymbols: string[];
   showDropdown: boolean;
   activeIdx: number;
 }
@@ -24,7 +24,6 @@ interface SearchState {
 type SearchAction =
   | { type: "SET_VALUE"; value: string }
   | { type: "SET_SUGGESTIONS"; suggestions: CoinInfo[]; showDropdown: boolean }
-  | { type: "SET_DEBOUNCED_SYMBOLS"; symbols: string[] }
   | { type: "SET_SHOW_DROPDOWN"; show: boolean }
   | { type: "SET_ACTIVE_IDX"; idx: number }
   | { type: "NAVIGATE_DOWN"; listLength: number }
@@ -34,7 +33,6 @@ type SearchAction =
 const initialState: SearchState = {
   value: "",
   suggestions: [],
-  debouncedSymbols: [],
   showDropdown: false,
   activeIdx: -1,
 };
@@ -45,8 +43,6 @@ function searchReducer(state: SearchState, action: SearchAction): SearchState {
       return { ...state, value: action.value, activeIdx: -1 };
     case "SET_SUGGESTIONS":
       return { ...state, suggestions: action.suggestions, showDropdown: action.showDropdown };
-    case "SET_DEBOUNCED_SYMBOLS":
-      return { ...state, debouncedSymbols: action.symbols };
     case "SET_SHOW_DROPDOWN":
       return { ...state, showDropdown: action.show };
     case "SET_ACTIVE_IDX":
@@ -67,26 +63,11 @@ function searchReducer(state: SearchState, action: SearchAction): SearchState {
 
 export const SearchBar = memo(function SearchBar({ onSearch, autoFocus }: SearchBarProps) {
   const [state, dispatch] = useReducer(searchReducer, initialState);
-  const { value, suggestions, debouncedSymbols, showDropdown, activeIdx } = state;
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { value, suggestions, showDropdown, activeIdx } = state;
 
   const { data: coins = [] } = useCoinList();
   const suggestionSymbols = useMemo(() => suggestions.map((c) => c.Symbol), [suggestions]);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (suggestionSymbols.length === 0) {
-      dispatch({ type: "SET_DEBOUNCED_SYMBOLS", symbols: [] });
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      dispatch({ type: "SET_DEBOUNCED_SYMBOLS", symbols: suggestionSymbols });
-    }, PRICE_DEBOUNCE_MS);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [suggestionSymbols.join(",")]);
+  const debouncedSymbols = useDebouncedValue(suggestionSymbols, PRICE_DEBOUNCE_MS);
 
   const priceQueries = useCryptoPrices(debouncedSymbols, { lazy: true });
 
@@ -114,7 +95,7 @@ export const SearchBar = memo(function SearchBar({ onSearch, autoFocus }: Search
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (!(e.target as HTMLElement).closest?.(".search-wrapper")) {
         dispatch({ type: "SET_SHOW_DROPDOWN", show: false });
       }
     };
@@ -190,7 +171,7 @@ export const SearchBar = memo(function SearchBar({ onSearch, autoFocus }: Search
   };
 
   return (
-    <div className="search-wrapper" ref={wrapperRef}>
+    <div className="search-wrapper">
       <form className="search-bar" onSubmit={handleSubmit}>
         <div className="search-input-wrapper">
           <img className="search-icon" src="/search.svg" alt="" />
@@ -224,7 +205,7 @@ export const SearchBar = memo(function SearchBar({ onSearch, autoFocus }: Search
               <span className="suggestion-name">{coin.FullName}</span>
               <span className="suggestion-price">
                 {prices[coin.Symbol] != null
-                  ? `$${prices[coin.Symbol]!.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
+                  ? formatPrice(prices[coin.Symbol]!)
                   : "…"}
               </span>
             </li>

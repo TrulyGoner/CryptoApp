@@ -1,5 +1,6 @@
 import { memo, useMemo, useCallback } from "react";
 import { useCryptoPrice, useHistory24h } from "@/shared/hooks";
+import { formatPrice, calcChange } from "@/shared/lib";
 import { Button, Spinner, Sparkline } from "@/shared/ui";
 import "./CryptoItem.css";
 
@@ -25,11 +26,6 @@ function changeDirection(pct: number | null): "up" | "down" | "same" {
   if (pct > 0) return "up";
   if (pct < 0) return "down";
   return "same";
-}
-
-function calcChange(history: number[] | undefined): number | null {
-  if (!history || history.length < 2 || history[0] === 0) return null;
-  return ((history[history.length - 1] - history[0]) / history[0]) * 100;
 }
 
 export const CryptoItem = memo(function CryptoItem({
@@ -63,13 +59,9 @@ export const CryptoItem = memo(function CryptoItem({
           </span>
         </div>
         <div className="cell-price">
-          {loading ? (
-            <Spinner />
-          ) : price !== null ? (
-            `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`
-          ) : (
-            "N/A"
-          )}
+          {loading && <Spinner />}
+          {!loading && price !== null && formatPrice(price)}
+          {!loading && price === null && "N/A"}
         </div>
         <div className="cell-change">
           {change24h !== null ? (

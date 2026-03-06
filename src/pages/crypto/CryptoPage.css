@@ -119,9 +119,3 @@
 .coin-body > div::-webkit-scrollbar {
   display: none;                 
 }
-
-.empty {
-  text-align: center;
-  color: var(--muted);
-  padding: 32px 0;
-}

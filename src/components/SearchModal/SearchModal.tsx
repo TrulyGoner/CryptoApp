@@ -1,5 +1,6 @@
 import { memo, useEffect, useCallback, useMemo } from "react";
 import { useCoinList, useCryptoPrices } from "@/shared/hooks";
+import { formatPrice } from "@/shared/lib";
 import { SearchBar } from "@/components/SearchBar/SearchBar";
 import "./SearchModal.css";
 
@@ -20,7 +21,7 @@ export const SearchModal = memo(function SearchModal({ open, onClose, onSelect, 
 
   const topPriceKey = useMemo(
     () => topPriceValues.join(","),
-    [topPriceValues.join(",")],
+    [topPriceValues.length, ...topPriceValues],
   );
 
   const topCoins = useMemo(() => {
@@ -101,10 +102,7 @@ export const SearchModal = memo(function SearchModal({ open, onClose, onSelect, 
                   <span className="top-symbol">{coin.symbol}</span>
                   <span className="top-name">{coin.fullName}</span>
                   <span className="top-price">
-                    ${coin.price.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {formatPrice(coin.price, { max: 2 })}
                   </span>
                 </div>
               ))}

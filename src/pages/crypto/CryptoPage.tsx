@@ -3,9 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { List, type RowComponentProps } from "react-window";
 import { fetchCryptoPrice } from "@/shared/api";
 import { useSortWorker, useCryptoPrices, useHistories24h, useDebouncedValue } from "@/shared/hooks";
-import { loadCoins, saveCoins } from "@/shared/lib";
+import { loadCoins, saveCoins, calcChange } from "@/shared/lib";
 import { Button, Input, SkeletonRow } from "@/shared/ui";
 import { CryptoItem, SearchModal } from "@/components";
+import { EmptyMessage } from "@/shared/ui";
 import type { SortableItem } from "@/shared/workers/sort.worker";
 import "./CryptoPage.css";
 
@@ -99,10 +100,7 @@ export function CryptoPage() {
     return symbols.map((sym, i) => {
       const price = priceQueries[i]?.data ?? null;
       const h = historyQueries[i]?.data;
-      let change24h: number | null = null;
-      if (h && h.length >= 2 && h[0] !== 0) {
-        change24h = ((h[h.length - 1] - h[0]) / h[0]) * 100;
-      }
+      const change24h = calcChange(h);
       return { symbol: sym, price, change24h };
     });
   }, [symbols, priceValuesKey, historyDataKey]);
@@ -266,9 +264,7 @@ export function CryptoPage() {
         </div>
       </div>
       {symbols.length === 0 && (
-        <p className="empty">
-          No cryptocurrencies tracked. Search to add one!
-        </p>
+        <EmptyMessage message="No cryptocurrencies tracked. Search to add one!" />
       )}
     </>
   );

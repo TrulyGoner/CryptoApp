@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { fetchCryptoPrice } from "@/shared/api";
 
 export function useCryptoPrice(symbol: string) {
-  const prevPriceRef = useRef<number | null>(null);
+  const [prevPrice, setPrevPrice] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -11,7 +11,7 @@ export function useCryptoPrice(symbol: string) {
     queryFn: async () => {
       const current = queryClient.getQueryData<number | null>(["cryptoPrice", symbol]);
       if (current != null) {
-        prevPriceRef.current = current;
+        setPrevPrice(current);
       }
       return fetchCryptoPrice(symbol);
     },
@@ -20,17 +20,13 @@ export function useCryptoPrice(symbol: string) {
     refetchInterval: 30_000,
   });
 
-  if (query.data != null && prevPriceRef.current === null) {
-    prevPriceRef.current = query.data;
-  }
-
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["cryptoPrice", symbol] });
   }, [queryClient, symbol]);
 
   return {
     price: query.data ?? null,
-    prevPrice: prevPriceRef.current,
+    prevPrice,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
     invalidate,
