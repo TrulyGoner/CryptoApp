@@ -1,4 +1,7 @@
 .crypto-row {
+  background: var(--surface);
+  border-radius: 10px;
+  height: 52px;
   transition: background 0.2s;
 }
 
@@ -16,17 +19,10 @@
   box-shadow: inset 3px 0 0 #6b7280;
 }
 
-.crypto-row td {
-  padding: 10px 12px;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
 .cell-index {
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 600;
-  width: 36px;
   text-align: center;
 }
 

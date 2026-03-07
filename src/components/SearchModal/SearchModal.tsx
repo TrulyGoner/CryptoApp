@@ -1,5 +1,6 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { memo, useEffect, useCallback, useMemo } from "react";
 import { useCoinList, useCryptoPrices } from "@/shared/hooks";
+import { formatPrice } from "@/shared/lib";
 import { SearchBar } from "@/components/SearchBar/SearchBar";
 import "./SearchModal.css";
 
@@ -12,21 +13,28 @@ interface SearchModalProps {
 
 const TOP_SYMBOLS = ["BTC", "ETH", "BNB", "SOL", "XRP"];
 
-export function SearchModal({ open, onClose, onSelect, searching }: SearchModalProps) {
+export const SearchModal = memo(function SearchModal({ open, onClose, onSelect, searching }: SearchModalProps) {
   const { data: coinList = [] } = useCoinList();
   const priceQueries = useCryptoPrices(open ? TOP_SYMBOLS : []);
+
+  const topPriceValues = priceQueries.map((q) => q.data ?? null);
+
+  const topPriceKey = useMemo(
+    () => topPriceValues.join(","),
+    [topPriceValues.length, ...topPriceValues],
+  );
 
   const topCoins = useMemo(() => {
     const results: { symbol: string; fullName: string; price: number }[] = [];
     TOP_SYMBOLS.forEach((sym, i) => {
-      const price = priceQueries[i]?.data;
+      const price = topPriceValues[i];
       if (price != null) {
         const info = coinList.find((c) => c.Symbol === sym);
         results.push({ symbol: sym, fullName: info?.FullName ?? sym, price });
       }
     });
     return results.sort((a, b) => b.price - a.price).slice(0, 3);
-  }, [priceQueries, coinList]);
+  }, [topPriceKey, coinList]);
 
   const topLoading = open && priceQueries.some((q) => q.isLoading);
 
@@ -45,6 +53,14 @@ export function SearchModal({ open, onClose, onSelect, searching }: SearchModalP
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
+
+  const handleSearchSelect = useCallback(
+    (sym: string) => {
+      onSelect(sym);
+      onClose();
+    },
+    [onSelect, onClose],
+  );
 
   if (!open) return null;
 
@@ -86,10 +102,7 @@ export function SearchModal({ open, onClose, onSelect, searching }: SearchModalP
                   <span className="top-symbol">{coin.symbol}</span>
                   <span className="top-name">{coin.fullName}</span>
                   <span className="top-price">
-                    ${coin.price.toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {formatPrice(coin.price, { max: 2 })}
                   </span>
                 </div>
               ))}
@@ -100,9 +113,9 @@ export function SearchModal({ open, onClose, onSelect, searching }: SearchModalP
         <hr className="modal-divider" />
 
         <div className="modal-search-area">
-          <SearchBar onSearch={(sym) => { onSelect(sym); onClose(); }} searching={searching} autoFocus />
+          <SearchBar onSearch={handleSearchSelect} searching={searching} autoFocus />
         </div>
       </div>
     </div>
   );
-}
+});

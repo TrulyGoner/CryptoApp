@@ -1,0 +1,73 @@
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-row {
+  background: var(--surface);
+  border-radius: 10px;
+  height: 52px;
+  margin-bottom: 6px;
+}
+
+.skeleton-row > div {
+  display: flex;
+  align-items: center;
+}
+
+.skeleton-index {
+  width: 20px;
+  height: 14px;
+}
+
+.skeleton-symbol {
+  width: 48px;
+  height: 16px;
+}
+
+.skeleton-price {
+  width: 80px;
+  height: 14px;
+  margin-left: auto;
+}
+
+.skeleton-change {
+  width: 50px;
+  height: 14px;
+  margin-left: auto;
+}
+
+.skeleton-chart {
+  width: 100px;
+  height: 32px;
+  margin: 0 auto;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.skeleton-btn {
+  width: 60px;
+  height: 30px;
+  border-radius: 6px;
+}

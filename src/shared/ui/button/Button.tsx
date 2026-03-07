@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ButtonHTMLAttributes } from "react";
 import "./Button.css";
 
@@ -7,7 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
 }
 
-export function Button({
+export const Button = memo(function Button({
   variant = "primary",
   className = "",
   children,
@@ -18,4 +19,4 @@ export function Button({
       {children}
     </button>
   );
-}
+});
